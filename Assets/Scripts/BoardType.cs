@@ -3,7 +3,7 @@ public enum BoardType
     Default,
     TableroGlacial,
     TableroDeLava,
-    TableroReal,
+    TableroMedieval,
     TableroVerde
 }
 

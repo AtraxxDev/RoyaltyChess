@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Networking;
 using System.Collections;
 using System.Collections.Generic;
@@ -17,17 +17,20 @@ public class Login : MonoBehaviour
 
     [SerializeField] private BoardInitializer boardInitializer;
 
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        //mat.color = Color.gray;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
+        // ✅ Ocultar panel si ya hay sesión guardada
+        if (PlayerPrefs.HasKey("userId"))
+        {
+            userId = PlayerPrefs.GetInt("userId");
+            Debug.Log($"Sesión encontrada. userId = {userId}");
+            panel.SetActive(false);
+            StartCoroutine(GetProducts(userId));
+        }
+        else
+        {
+            panel.SetActive(true); // mostrar login
+        }
     }
 
     public void tryLogin()
@@ -35,40 +38,29 @@ public class Login : MonoBehaviour
         string username = txtUser.text;
         string password = txtPass.text;
 
-        if (username != "" && password != "")
+        if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
         {
             StartCoroutine(testPost(username, password));
-            panel.SetActive(false);
         }
         else
         {
             if (mat != null)
                 mat.color = Color.red;
-
         }
     }
 
     IEnumerator testPost(string username, string password)
     {
-        // Multi part
-        /* 
-        var formData = new List<IMultipartFormSection>();
-        formData.Add(new MultipartFormDataSection("username=asd&password=qwe"));
-        //formData.Add(new MultipartFormFileSection("my file data", "myfile.txt"));
-        using var www = UnityWebRequest.Post(baseUrl + "user", formData);
-        */
-
-        // WWWForm
         WWWForm form = new WWWForm();
         form.AddField("username", username);
         form.AddField("password", password);
-        //form.AddBinaryData("fileUpload", bytes, "screenShot.png", "image/png");
+
         var www = UnityWebRequest.Post(baseUrl + "login", form);
         if (mat != null)
             mat.color = Color.cyan;
 
-
         yield return www.SendWebRequest();
+
         if (www.result != UnityWebRequest.Result.Success)
         {
             Debug.Log(www.error);
@@ -78,29 +70,44 @@ public class Login : MonoBehaviour
             string json = www.downloadHandler.text;
             LoginResponse response = JsonUtility.FromJson<LoginResponse>(json);
 
-            txtLogger.text = $"Status: {response.status}\nID: {response.id}\nUser: {response.name}";
             userId = response.id;
+
+            // ✅ Guardar sesión
+            PlayerPrefs.SetInt("userId", userId);
+            PlayerPrefs.SetString("username", username);
+            PlayerPrefs.SetString("name", response.name);
+            PlayerPrefs.Save();
+
+            txtLogger.text = $"Status: {response.status}\nID: {response.id}\nUser: {response.name}";
 
             if (mat != null)
                 mat.color = Color.green;
 
-            StartCoroutine(GetProducts(userId));
+            panel.SetActive(false); // ✅ ocultar panel tras login exitoso
 
+            StartCoroutine(GetProducts(userId));
         }
     }
 
     [ContextMenu("GetProducts")]
     public void InitializeGetProducts()
     {
-        Debug.Log(userId);
-        StartCoroutine(GetProducts(userId));
+        int storedUserId = PlayerPrefs.GetInt("userId", -1);
+        if (storedUserId != -1)
+        {
+            Debug.Log($"Recuperado de PlayerPrefs: userId = {storedUserId}");
+            StartCoroutine(GetProducts(storedUserId));
+        }
+        else
+        {
+            Debug.LogWarning("No hay userId guardado en PlayerPrefs");
+        }
     }
-
 
     IEnumerator GetProducts(int userId)
     {
         WWWForm form = new WWWForm();
-        form.AddField("idUser", userId.ToString());  // igual que username/pass en testPost
+        form.AddField("idUser", userId.ToString());
 
         UnityWebRequest www = UnityWebRequest.Post(baseUrl + "products", form);
         if (mat != null)
@@ -123,16 +130,14 @@ public class Login : MonoBehaviour
                 Debug.Log($"[DEBUG] Producto recibido: {prod.product}");
             }
 
-
             boardInitializer.InitializeWithProducts(productos);
-
 
             foreach (var prod in productos)
             {
                 Debug.Log($"Producto: {prod.product} | Precio: {prod.price} | Descuento: {prod.discount_percentage}%");
             }
 
-            if(mat!=null)
+            if (mat != null)
                 mat.color = Color.green;
         }
     }

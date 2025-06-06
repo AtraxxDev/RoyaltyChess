@@ -11,13 +11,17 @@ public class Login : MonoBehaviour
     public TMP_Text txtLogger;
     public TMP_InputField txtUser, txtPass;
     public Material mat;
+    public GameObject panel;
 
     private int userId;
+
+    [SerializeField] private BoardInitializer boardInitializer;
+
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        mat.color = Color.gray;
+        //mat.color = Color.gray;
     }
 
     // Update is called once per frame
@@ -32,9 +36,16 @@ public class Login : MonoBehaviour
         string password = txtPass.text;
 
         if (username != "" && password != "")
+        {
             StartCoroutine(testPost(username, password));
+            panel.SetActive(false);
+        }
         else
-            mat.color = Color.red;
+        {
+            if (mat != null)
+                mat.color = Color.red;
+
+        }
     }
 
     IEnumerator testPost(string username, string password)
@@ -53,7 +64,8 @@ public class Login : MonoBehaviour
         form.AddField("password", password);
         //form.AddBinaryData("fileUpload", bytes, "screenShot.png", "image/png");
         var www = UnityWebRequest.Post(baseUrl + "login", form);
-        mat.color = Color.cyan;
+        if (mat != null)
+            mat.color = Color.cyan;
 
 
         yield return www.SendWebRequest();
@@ -69,7 +81,11 @@ public class Login : MonoBehaviour
             txtLogger.text = $"Status: {response.status}\nID: {response.id}\nUser: {response.name}";
             userId = response.id;
 
-            mat.color = Color.green;
+            if (mat != null)
+                mat.color = Color.green;
+
+            StartCoroutine(GetProducts(userId));
+
         }
     }
 
@@ -87,7 +103,8 @@ public class Login : MonoBehaviour
         form.AddField("idUser", userId.ToString());  // igual que username/pass en testPost
 
         UnityWebRequest www = UnityWebRequest.Post(baseUrl + "products", form);
-        mat.color = Color.yellow;
+        if (mat != null)
+            mat.color = Color.yellow;
 
         yield return www.SendWebRequest();
 
@@ -101,12 +118,16 @@ public class Login : MonoBehaviour
 
             ProductResponse[] productos = JsonHelper.FromJson<ProductResponse>(json);
 
+            boardInitializer.InitializeWithProducts(productos);
+
+
             foreach (var prod in productos)
             {
                 Debug.Log($"Producto: {prod.product} | Precio: {prod.price} | Descuento: {prod.discount_percentage}%");
             }
 
-            mat.color = Color.green;
+            if(mat!=null)
+                mat.color = Color.green;
         }
     }
 }

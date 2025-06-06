@@ -118,6 +118,12 @@ public class Login : MonoBehaviour
 
             ProductResponse[] productos = JsonHelper.FromJson<ProductResponse>(json);
 
+            foreach (var prod in productos)
+            {
+                Debug.Log($"[DEBUG] Producto recibido: {prod.product}");
+            }
+
+
             boardInitializer.InitializeWithProducts(productos);
 
 

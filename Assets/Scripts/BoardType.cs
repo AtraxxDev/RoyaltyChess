@@ -2,7 +2,7 @@ public enum BoardType
 {
     Default,
     TableroGlacial,
-    TableroDeLava,
+    TablerodeLava,
     TableroMedieval,
     TableroVerde
 }
